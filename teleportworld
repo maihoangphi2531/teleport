@@ -174,7 +174,7 @@ local function runAfter7Minutes()
     stopAllScripts()
     
     -- Chờ 7 phút ( 620 giây)
-    wait(500)
+    wait(2000)
 
     -- Sau khi chờ 7 phút, thực hiện đoạn mã
     local args = {
