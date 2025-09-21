@@ -47,13 +47,11 @@ local lobbyId = {
 
 -- [[ CẬP NHẬT: DANH SÁCH WORLD MỤC TIÊU ĐỂ DỊCH CHUYỂN VÀ START RAID ]]
 local targetWorlds = {
-    4310463616, -- World 1
     4465987684, -- World 3
     4646472003, -- World 4
     5703355191, -- World 5
     6075083204, -- World 6
     6847035264, -- World 7
-    10651517727  -- world 9
 }
 
 -- [[ CÁC HÀM TIỆN ÍCH ]]
