@@ -1,5 +1,7 @@
 local TeleportService = game:GetService("TeleportService")
-local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleportXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleport
+
+-- [[ DANH SÁCH ID ]]
 
 local dungeonId = {
     [2978696440] = 'Crabby Crusade (1-1)', 
@@ -39,8 +41,22 @@ local lobbyId = {
     [5703355191] = 'World 5',
     [6075083204] = 'World 6',
     [6847035264] = 'World 7',
+    -- World 8 không có trong danh sách gốc, bạn có thể thêm ID vào đây nếu cần
     [10651517727] = 'world 9'
 }
+
+-- [[ CẬP NHẬT: DANH SÁCH WORLD MỤC TIÊU ĐỂ DỊCH CHUYỂN VÀ START RAID ]]
+local targetWorlds = {
+    4310463616, -- World 1
+    4465987684, -- World 3
+    4646472003, -- World 4
+    5703355191, -- World 5
+    6075083204, -- World 6
+    6847035264, -- World 7
+    10651517727  -- world 9
+}
+
+-- [[ CÁC HÀM TIỆN ÍCH ]]
 
 -- Hàm để dừng tất cả các hoạt động script
 local function stopAllScripts()
@@ -55,8 +71,41 @@ local function isGameLoaded()
     return game:IsLoaded()
 end
 
-local function teleportIfInSpecificLobby()
-    stopAllScripts() -- Dừng trước khi bắt đầu teleport
+-- Hàm tiện ích để kiểm tra xem PlaceId hiện tại có nằm trong danh sách world mục tiêu không
+local function isInTargetWorld()
+    for _, worldId in ipairs(targetWorlds) do
+        if game.PlaceId == worldId then
+            return true
+        end
+    end
+    return false
+end
+
+-- Hàm để thực hiện Start Raid
+local function startRaid()
+    warn("Đang thực hiện Start Raid...")
+    local args = { [1] = 34 } -- ID của raid, giữ nguyên là 34
+    
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    local teleportModule = replicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
+    
+    if teleportModule then
+        local startRaidEvent = teleportModule:WaitForChild("StartRaid", 5)
+        if startRaidEvent then
+            startRaidEvent:FireServer(unpack(args))
+        else
+            warn("Không tìm thấy StartRaidEvent.")
+        end
+    else
+        warn("Không tìm thấy module Teleport.")
+    end
+end
+
+
+-- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
+
+local function teleportAndRaidLogic()
+    stopAllScripts() -- Dừng trước khi bắt đầu
     if isTeleporting then
         warn("Script đang dừng do teleport đang diễn ra.")
         return -- Dừng lại nếu đã có teleport đang thực hiện
@@ -65,46 +114,32 @@ local function teleportIfInSpecificLobby()
     isTeleporting = true -- Đặt khóa để dừng các hoạt động khác
 
     local success, err = pcall(function()
+        -- Trường hợp 1: Nếu đang ở Main Menu -> Dịch chuyển ngẫu nhiên đến một world trong danh sách
         if game.PlaceId == 2727067538 then
-            warn("Teleporting from Main Menu to Hub 13")
-            local placeId = 4310463616  -- ID của nơi bạn muốn chuyển đến
-            TeleportService:Teleport(placeId)
-        elseif game.PlaceId == 4310463616 then
-            warn("Teleporting from World 1 to Hub 34")
-            local args = { [1] = 34 }
-
-            local replicatedStorage = game:GetService("ReplicatedStorage")
-            local teleportService = replicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
-            local startRaidEvent = teleportService:WaitForChild("StartRaid", 5)
-
-            if startRaidEvent then
-                startRaidEvent:FireServer(unpack(args))
-            end
-        elseif game.PlaceId == 10651517727 then
-            warn("Teleporting from Lobby 10651517727 to Hub 34")
-            local args = { [1] = 34 }
-
-            local replicatedStorage = game:GetService("ReplicatedStorage")
-            local teleportService = replicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
-            local startRaidEvent = teleportService:WaitForChild("StartRaid", 5)
-
-            if startRaidEvent then
-                startRaidEvent:FireServer(unpack(args))
-            end
+            local randomWorldId = targetWorlds[math.random(1, #targetWorlds)]
+            warn("Teleporting from Main Menu to random world: " .. (lobbyId[randomWorldId] or randomWorldId))
+            TeleportService:Teleport(randomWorldId)
+        
+        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
+        elseif isInTargetWorld() then
+            warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
+            startRaid()
         end
     end)
 
     if not success then
-        warn("Error during teleport: " .. err)
+        warn("Error during teleport/raid logic: " .. err)
     end
 
-    -- Sau khi kết thúc teleport (dù thành công hay thất bại), thả khóa sau vài giây
+    -- Sau khi kết thúc (dù thành công hay thất bại), thả khóa sau vài giây để ổn định
     wait(10)
     isTeleporting = false
 end
 
+-- [[ CÁC HÀM KIỂM TRA VỊ TRÍ ]]
+
 function lobbyCheck()
-    stopAllScripts() -- Dừng trước khi thực thi hàm
+    stopAllScripts()
     for i, v in pairs(lobbyId) do
         if game.PlaceId == i then
             warn("Lobby:", v)
@@ -115,7 +150,7 @@ function lobbyCheck()
 end
 
 function dungeonCheck()
-    stopAllScripts() -- Dừng trước khi thực thi hàm
+    stopAllScripts()
     for i, v in pairs(dungeonId) do
         if game.PlaceId == i then
             warn("Dungeon:", v)
@@ -126,7 +161,7 @@ function dungeonCheck()
 end 
 
 function towerCheck()
-    stopAllScripts() -- Dừng trước khi thực thi hàm
+    stopAllScripts()
     for i, v in pairs(towerId) do
         if game.PlaceId == i then
             warn("Tower:", v)
@@ -136,25 +171,25 @@ function towerCheck()
     return false
 end
 
-local function checkAndTeleport()
-    stopAllScripts() -- Dừng trước khi kiểm tra và teleport
-    warn('Checking')
+-- [[ VÒNG LẶP CHÍNH VÀ COROUTINE ]]
+
+local function checkAndExecuteLogic()
+    stopAllScripts()
+    warn('Checking location...')
 
     if isTeleporting then
-        return -- Nếu đang trong quá trình teleport, không kiểm tra nữa
+        return -- Nếu đang trong quá trình teleport, không làm gì cả
     end
 
     if isGameLoaded() then
-        local inLobby = lobbyCheck()
-        if inLobby then
-            teleportIfInSpecificLobby()
+        if lobbyCheck() then
+            teleportAndRaidLogic()
         end
     else
         game.Loaded:Wait()
         warn('Game Loaded')
-        local inLobby = lobbyCheck()
-        if inLobby then
-            teleportIfInSpecificLobby()
+        if lobbyCheck() then
+            teleportAndRaidLogic()
         end
     end
 end
@@ -162,30 +197,24 @@ end
 local function mainCoroutine()
     while true do
         if not isTeleporting then
-            checkAndTeleport()
+            checkAndExecuteLogic()
         end
-        wait(10)
+        wait(10) -- Tần suất kiểm tra
     end
 end
 
--- Khởi chạy coroutine
+-- Khởi chạy coroutine chính
 coroutine.wrap(mainCoroutine)()
+
+-- Coroutine này có vẻ là một cơ chế dự phòng, giữ lại theo yêu cầu
 local function runAfter7Minutes()
     stopAllScripts()
     
-    -- Chờ 7 phút ( 620 giây)
-    wait(330)
+    -- Chờ 7 phút (420 giây)
+    wait(420)
 
-    -- Sau khi chờ 7 phút, thực hiện đoạn mã
-    local args = {
-        [1] = 34
-    }
-    local replicatedStorage = game:GetService("ReplicatedStorage")
-    local teleportService = replicatedStorage:WaitForChild("Shared"):WaitForChild("Teleport")
-    local startRaidEvent = teleportService:WaitForChild("StartRaid")
-    if startRaidEvent then
-        startRaidEvent:FireServer(unpack(args))
-    end
+    warn("7 minutes passed. Firing StartRaid as a fallback.")
+    startRaid()
 end
 
 -- Bắt đầu coroutine để không ảnh hưởng đến các hàm khác
