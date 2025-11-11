@@ -175,6 +175,14 @@ local function checkAndExecuteLogic()
     stopAllScripts()
     warn('Checking location...')
 
+    -- [[ THAY ĐỔI Ở ĐÂY ]] --
+    -- Nếu người chơi đang ở World 2, không làm gì cả và thoát khỏi hàm
+    if game.PlaceId == 4310463940 then
+        warn("Đang ở World 2, tạm dừng script auto raid.")
+        return
+    end
+    -- [[ KẾT THÚC THAY ĐỔI ]] --
+
     if isTeleporting then
         return -- Nếu đang trong quá trình teleport, không làm gì cả
     end
