@@ -1,53 +1,6 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Hàm kiểm tra version và kick nếu không đúng
-local function checkVersion()
-    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-    
-    -- Thử lại liên tục cho đến khi tìm thấy Settings GUI
-    local SettingsGui
-    repeat
-        SettingsGui = PlayerGui:FindFirstChild("Settings")
-        if not SettingsGui then
-            print("Đang tìm Settings GUI...")
-            task.wait(0.5)
-        end
-    until SettingsGui
-    
-    -- Thử lại liên tục cho đến khi tìm thấy Settings Frame
-    local SettingsFrame
-    repeat
-        SettingsFrame = SettingsGui:FindFirstChild("Settings")
-        if not SettingsFrame then
-            print("Đang tìm Settings Frame...")
-            task.wait(0.5)
-        end
-    until SettingsFrame
-    
-    -- Thử lại liên tục cho đến khi tìm thấy Version Label
-    local VersionLabel
-    repeat
-        VersionLabel = SettingsFrame:FindFirstChild("Version")
-        if not VersionLabel then
-            print("Đang tìm Version Label...")
-            task.wait(0.5)
-        end
-    until VersionLabel
-    
-    -- Kiểm tra version
-    local currentVersion = VersionLabel.Text
-    local requiredVersion = "Version 2.8.0"
-    
-    if currentVersion ~= requiredVersion then
-        LocalPlayer:Kick("Version không hợp lệ! Yêu cầu: " .. requiredVersion .. " | Version hiện tại: " .. currentVersion)
-    else
-        print("Version hợp lệ: " .. currentVersion)
-    end
-end
-
--- Thực thi kiểm tra
-checkVersion()
 local dungeonId = {
     [2978696440] = 'Crabby Crusade (1-1)', 
     [4310476380] = 'Scarecrow Defense (1-2)', 
@@ -121,6 +74,56 @@ local function isInTargetWorld()
         end
     end
     return false
+end
+
+-- Hàm kiểm tra version và kick nếu không đúng (tất cả world trừ main menu)
+local function checkVersion()
+    -- Không kiểm tra version nếu đang ở Main Menu
+    if game.PlaceId == 2727067538 then
+        return
+    end
+    
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    
+    -- Thử lại liên tục cho đến khi tìm thấy Settings GUI
+    local SettingsGui
+    repeat
+        SettingsGui = PlayerGui:FindFirstChild("Settings")
+        if not SettingsGui then
+            print("Đang tìm Settings GUI...")
+            task.wait(0.5)
+        end
+    until SettingsGui
+    
+    -- Thử lại liên tục cho đến khi tìm thấy Settings Frame
+    local SettingsFrame
+    repeat
+        SettingsFrame = SettingsGui:FindFirstChild("Settings")
+        if not SettingsFrame then
+            print("Đang tìm Settings Frame...")
+            task.wait(0.5)
+        end
+    until SettingsFrame
+    
+    -- Thử lại liên tục cho đến khi tìm thấy Version Label
+    local VersionLabel
+    repeat
+        VersionLabel = SettingsFrame:FindFirstChild("Version")
+        if not VersionLabel then
+            print("Đang tìm Version Label...")
+            task.wait(0.5)
+        end
+    until VersionLabel
+    
+    -- Kiểm tra version
+    local currentVersion = VersionLabel.Text
+    local requiredVersion = "Version 2.8.0"
+    
+    if currentVersion ~= requiredVersion then
+        LocalPlayer:Kick("Version không hợp lệ! Yêu cầu: " .. requiredVersion .. " | Version hiện tại: " .. currentVersion)
+    else
+        print("Version hợp lệ: " .. currentVersion)
+    end
 end
 
 -- Hàm để thực hiện Start Raid
@@ -272,6 +275,11 @@ end
 local function checkAndExecuteLogic()
     stopAllScripts()
     warn('Checking location...')
+
+    -- Kiểm tra version ngay khi vào bất kỳ world nào (trừ Main Menu)
+    if game.PlaceId ~= 2727067538 then
+        checkVersion()
+    end
 
     -- [[ THAY ĐỔI Ở ĐÂY ]] --
     -- Nếu người chơi đang ở World 2, World 7 hoặc World 9, chỉ giấu người chơi và thoát khỏi hàm
