@@ -1,8 +1,53 @@
-local TeleportService = game:GetService("TeleportService")
-local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleport
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- [[ DANH SÁCH ID ]]
+-- Hàm kiểm tra version và kick nếu không đúng
+local function checkVersion()
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    
+    -- Thử lại liên tục cho đến khi tìm thấy Settings GUI
+    local SettingsGui
+    repeat
+        SettingsGui = PlayerGui:FindFirstChild("Settings")
+        if not SettingsGui then
+            print("Đang tìm Settings GUI...")
+            task.wait(0.5)
+        end
+    until SettingsGui
+    
+    -- Thử lại liên tục cho đến khi tìm thấy Settings Frame
+    local SettingsFrame
+    repeat
+        SettingsFrame = SettingsGui:FindFirstChild("Settings")
+        if not SettingsFrame then
+            print("Đang tìm Settings Frame...")
+            task.wait(0.5)
+        end
+    until SettingsFrame
+    
+    -- Thử lại liên tục cho đến khi tìm thấy Version Label
+    local VersionLabel
+    repeat
+        VersionLabel = SettingsFrame:FindFirstChild("Version")
+        if not VersionLabel then
+            print("Đang tìm Version Label...")
+            task.wait(0.5)
+        end
+    until VersionLabel
+    
+    -- Kiểm tra version
+    local currentVersion = VersionLabel.Text
+    local requiredVersion = "Version 2.8.0"
+    
+    if currentVersion ~= requiredVersion then
+        LocalPlayer:Kick("Version không hợp lệ! Yêu cầu: " .. requiredVersion .. " | Version hiện tại: " .. currentVersion)
+    else
+        print("Version hợp lệ: " .. currentVersion)
+    end
+end
 
+-- Thực thi kiểm tra
+checkVersion()
 local dungeonId = {
     [2978696440] = 'Crabby Crusade (1-1)', 
     [4310476380] = 'Scarecrow Defense (1-2)', 
@@ -81,7 +126,7 @@ end
 -- Hàm để thực hiện Start Raid
 local function startRaid()
     warn("Đang thực hiện Start Raid...")
-    local args = { [1] = 34 } -- ID của raid, giữ nguyên là 34
+    local args = { [1] = 34233333 } -- ID của raid, giữ nguyên là 34
     
     local replicatedStorage = game:GetService("ReplicatedStorage")
     local teleportModule = replicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
