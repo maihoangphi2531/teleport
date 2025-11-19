@@ -39,7 +39,7 @@ local lobbyId = {
     [5703355191] = 'World 5',
     [6075083204] = 'World 6',
     [6847035264] = 'World 7',
-    -- World 8 không có trong danh sách gốc, bạn có thể thêm ID vào đây nếu cần
+    -- World 8 không có trong danh sách gốc, bạn có thể thêm ID dddddddddddvào đây nếu cần
     [10651517727] = 'world 9'
 }
 
@@ -129,7 +129,7 @@ end
 -- Hàm để thực hiện Start Raid
 local function startRaid()
     warn("Đang thực hiện Start Raid...")
-    local args = { [1] = 34233333 } -- ID của raid, giữ nguyên là 34
+    local args = { [1] = 34 } -- ID của raid, giữ nguyên là 34
     
     local replicatedStorage = game:GetService("ReplicatedStorage")
     local teleportModule = replicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
