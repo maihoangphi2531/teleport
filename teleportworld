@@ -51,7 +51,6 @@ local targetWorlds = {
     4646472003, -- World 4
     5703355191, -- World 5
     6075083204, -- World 6
-    6847035264, -- World 7
 }
 
 -- [[ CÁC HÀM TIỆN ÍCH ]]
@@ -102,8 +101,60 @@ end
 
 -- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
 
+-- Biến để theo dõi coroutine giữ cố định người chơi
+local keepPlayerHiddenCoroutine = nil
+
+-- Hàm để giữ cố định người chơi bên dưới SpawnLocation
+local function keepPlayerHidden()
+    local player = game.Players.LocalPlayer
+    
+    -- Dừng coroutine cũ nếu đang chạy
+    if keepPlayerHiddenCoroutine then
+        task.cancel(keepPlayerHiddenCoroutine)
+        keepPlayerHiddenCoroutine = nil
+    end
+    
+    -- Tạo coroutine mới để liên tục giữ người chơi ở vị trí
+    keepPlayerHiddenCoroutine = task.spawn(function()
+        while isInTargetWorld() or game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 do
+            local character = player.Character
+            if character then
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                local spawnLocation
+                
+                -- Kiểm tra World 2, World 7 hoặc World 9 sử dụng workspace.Spawn
+                if game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 then
+                    spawnLocation = workspace:FindFirstChild("Spawn")
+                else
+                    spawnLocation = workspace:FindFirstChild("SpawnLocation")
+                end
+                
+                if humanoidRootPart and spawnLocation then
+                    -- Giữ cố định người chơi xuống dưới Spawn/SpawnLocation
+                    -- World 7 thì sâu hơn (100 units), các world khác 50 units
+                    local depth = (game.PlaceId == 6847035264) and 200 or 50
+                    humanoidRootPart.CFrame = spawnLocation.CFrame - Vector3.new(0, depth, 0)
+                    humanoidRootPart.Anchored = true -- Neo người chơi để không bị di chuyển
+                    warn("Đang giữ người chơi ẩn bên dưới...")
+                end
+            end
+            task.wait(0.1) -- Kiểm tra và cập nhật vị trí mỗi 0.1 giây
+        end
+        
+        -- Bỏ neo khi thoát khỏi vòng lặp
+        local character = player.Character
+        if character then
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                humanoidRootPart.Anchored = false
+            end
+        end
+    end)
+    
+    warn("Đã bắt đầu giữ cố định người chơi bên dưới SpawnLocation.")
+end
+
 local function teleportAndRaidLogic()
-    stopAllScripts() -- Dừng trước khi bắt đầu
     if isTeleporting then
         warn("Script đang dừng do teleport đang diễn ra.")
         return -- Dừng lại nếu đã có teleport đang thực hiện
@@ -118,9 +169,11 @@ local function teleportAndRaidLogic()
             warn("Teleporting from Main Menu to random world: " .. (lobbyId[randomWorldId] or randomWorldId))
             TeleportService:Teleport(randomWorldId)
         
-        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
+        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Giấu player và bắt đầu raid
         elseif isInTargetWorld() then
-            warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
+            warn("Đã ở trong world mục tiêu. Giữ cố định player và bắt đầu Raid.")
+            keepPlayerHidden()
+            wait(1) -- Đợi một chút để đảm bảo dịch chuyển hoàn tất
             startRaid()
         end
     end)
@@ -129,8 +182,8 @@ local function teleportAndRaidLogic()
         warn("Error during teleport/raid logic: " .. err)
     end
 
-    -- Sau khi kết thúc (dù thành công hay thất bại), thả khóa sau vài giây để ổn định
-    wait(10)
+    -- Sau khi kết thúc, thả khóa ngay lập tức
+    wait(2)
     isTeleporting = false
 end
 
@@ -176,9 +229,10 @@ local function checkAndExecuteLogic()
     warn('Checking location...')
 
     -- [[ THAY ĐỔI Ở ĐÂY ]] --
-    -- Nếu người chơi đang ở World 2, không làm gì cả và thoát khỏi hàm
-    if game.PlaceId == 4310463940 then
-        warn("Đang ở World 2, tạm dừng script auto raid.")
+    -- Nếu người chơi đang ở World 2, World 7 hoặc World 9, chỉ giấu người chơi và thoát khỏi hàm
+    if game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 then
+        warn("Đang ở World 2, World 7 hoặc World 9, giấu người chơi và tạm dừng script auto raid.")
+        keepPlayerHidden()
         return
     end
     -- [[ KẾT THÚC THAY ĐỔI ]] --
