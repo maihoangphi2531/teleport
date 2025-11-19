@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
-local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleport
+local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleportddddd
 
 -- [[ DANH SÁCH ID ]]
 
@@ -119,8 +119,17 @@ local function checkVersion()
         end
     until VersionLabel
     
+    -- Đợi cho đến khi version được load thực sự (không phải "0.0.0" hoặc rỗng)
+    local currentVersion
+    repeat
+        currentVersion = VersionLabel.Text
+        if currentVersion == "" or currentVersion == "0.0.0" or not currentVersion:find("Version") then
+            print("Đang đợi version load... Hiện tại: " .. tostring(currentVersion))
+            task.wait(0.5)
+        end
+    until currentVersion ~= "" and currentVersion ~= "0.0.0" and currentVersion:find("Version")
+    
     -- Kiểm tra version
-    local currentVersion = VersionLabel.Text
     local requiredVersion = "Version 2.8.0"
     
     if currentVersion ~= requiredVersion then
