@@ -178,42 +178,57 @@ local function keepPlayerHidden()
     
     -- Tạo coroutine mới để liên tục giữ người chơi ở vị trí
     keepPlayerHiddenCoroutine = task.spawn(function()
+        -- Đợi character load nếu chưa có
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 30)
+        
+        if not humanoidRootPart then
+            warn("Không tìm thấy HumanoidRootPart!")
+            return
+        end
+        
+        -- Tìm SpawnLocation
+        local spawnLocation
+        if game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 then
+            spawnLocation = workspace:WaitForChild("Spawn", 5)
+        else
+            spawnLocation = workspace:WaitForChild("SpawnLocation", 5)
+        end
+        
+        if not spawnLocation then
+            warn("Không tìm thấy SpawnLocation/Spawn!")
+            return
+        end
+        
+        warn("Bắt đầu giữ người chơi ẩn bên dưới...")
+        
         while isInTargetWorld() or game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 do
-            local character = player.Character
+            -- Cập nhật character nếu respawn
+            if not character or not character.Parent then
+                character = player.Character
+            end
+            
             if character then
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                local spawnLocation
+                humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
                 
-                -- Kiểm tra World 2, World 7 hoặc World 9 sử dụng workspace.Spawn
-                if game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 then
-                    spawnLocation = workspace:FindFirstChild("Spawn")
-                else
-                    spawnLocation = workspace:FindFirstChild("SpawnLocation")
-                end
-                
-                if humanoidRootPart and spawnLocation then
+                if humanoidRootPart then
                     -- Giữ cố định người chơi xuống dưới Spawn/SpawnLocation
-                    -- World 7 thì sâu hơn (100 units), các world khác 50 units
                     local depth = (game.PlaceId == 6847035264) and 200 or 50
                     humanoidRootPart.CFrame = spawnLocation.CFrame - Vector3.new(0, depth, 0)
-                    humanoidRootPart.Anchored = true -- Neo người chơi để không bị di chuyển
-                    warn("Đang giữ người chơi ẩn bên dưới...")
+                    humanoidRootPart.Anchored = true
+                    humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
             end
             task.wait(0.1) -- Kiểm tra và cập nhật vị trí mỗi 0.1 giây
         end
         
         -- Bỏ neo khi thoát khỏi vòng lặp
-        local character = player.Character
-        if character then
-            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart then
-                humanoidRootPart.Anchored = false
-            end
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.Anchored = false
         end
+        
+        warn("Đã dừng giữ người chơi ẩn.")
     end)
-    
-    warn("Đã bắt đầu giữ cố định người chơi bên dưới SpawnLocation.")
 end
 
 local function teleportAndRaidLogic()
