@@ -163,74 +163,6 @@ end
 
 -- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
 
--- Biến để theo dõi coroutine giữ cố định người chơi
-local keepPlayerHiddenCoroutine = nil
-
--- Hàm để giữ cố định người chơi bên dưới SpawnLocation
-local function keepPlayerHidden()
-    local player = game.Players.LocalPlayer
-    
-    -- Dừng coroutine cũ nếu đang chạy
-    if keepPlayerHiddenCoroutine then
-        task.cancel(keepPlayerHiddenCoroutine)
-        keepPlayerHiddenCoroutine = nil
-    end
-    
-    -- Tạo coroutine mới để liên tục giữ người chơi ở vị trí
-    keepPlayerHiddenCoroutine = task.spawn(function()
-        -- Đợi character load nếu chưa có
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 30)
-        
-        if not humanoidRootPart then
-            warn("Không tìm thấy HumanoidRootPart!")
-            return
-        end
-        
-        -- Tìm SpawnLocation
-        local spawnLocation
-        if game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 then
-            spawnLocation = workspace:WaitForChild("Spawn", 5)
-        else
-            spawnLocation = workspace:WaitForChild("SpawnLocation", 5)
-        end
-        
-        if not spawnLocation then
-            warn("Không tìm thấy SpawnLocation/Spawn!")
-            return
-        end
-        
-        warn("Bắt đầu giữ người chơi ẩn bên dưới...")
-        
-        while isInTargetWorld() or game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 do
-            -- Cập nhật character nếu respawn
-            if not character or not character.Parent then
-                character = player.Character
-            end
-            
-            if character then
-                humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-                
-                if humanoidRootPart then
-                    -- Giữ cố định người chơi xuống dưới Spawn/SpawnLocation
-                    local depth = (game.PlaceId == 6847035264) and 200 or 50
-                    humanoidRootPart.CFrame = spawnLocation.CFrame - Vector3.new(0, depth, 0)
-                    humanoidRootPart.Anchored = true
-                    humanoidRootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                end
-            end
-            task.wait(0.1) -- Kiểm tra và cập nhật vị trí mỗi 0.1 giây
-        end
-        
-        -- Bỏ neo khi thoát khỏi vòng lặp
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            character.HumanoidRootPart.Anchored = false
-        end
-        
-        warn("Đã dừng giữ người chơi ẩn.")
-    end)
-end
-
 local function teleportAndRaidLogic()
     if isTeleporting then
         warn("Script đang dừng do teleport đang diễn ra.")
@@ -246,11 +178,9 @@ local function teleportAndRaidLogic()
             warn("Teleporting from Main Menu to random world: " .. (lobbyId[randomWorldId] or randomWorldId))
             TeleportService:Teleport(randomWorldId)
         
-        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Giấu player và bắt đầu raid
+        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
         elseif isInTargetWorld() then
-            warn("Đã ở trong world mục tiêu. Giữ cố định player và bắt đầu Raid.")
-            keepPlayerHidden()
-            wait(1) -- Đợi một chút để đảm bảo dịch chuyển hoàn tất
+            warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
             startRaid()
         end
     end)
@@ -309,15 +239,6 @@ local function checkAndExecuteLogic()
     if game.PlaceId ~= 2727067538 then
         checkVersion()
     end
-
-    -- [[ THAY ĐỔI Ở ĐÂY ]] --
-    -- Nếu người chơi đang ở World 2, World 7 hoặc World 9, chỉ giấu người chơi và thoát khỏi hàm
-    if game.PlaceId == 4310463940 or game.PlaceId == 10651517727 or game.PlaceId == 6847035264 then
-        warn("Đang ở World 2, World 7 hoặc World 9, giấu người chơi và tạm dừng script auto raid.")
-        keepPlayerHidden()
-        return
-    end
-    -- [[ KẾT THÚC THAY ĐỔI ]] --
 
     if isTeleporting then
         return -- Nếu đang trong quá trình teleport, không làm gì cả
