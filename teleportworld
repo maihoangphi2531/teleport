@@ -131,7 +131,7 @@ local function checkVersion()
     until currentVersion ~= "" and currentVersion ~= "Version 0.0.0" and currentVersion:find("Version")
     
     -- Kiểm tra version
-    local requiredVersion = "Version 2.8.1"
+    local requiredVersion = "Version 2.8.2"
     
     if currentVersion ~= requiredVersion then
         LocalPlayer:Kick("Version không hợp lệ! Yêu cầu: " .. requiredVersion .. " | Version hiện tại: " .. currentVersion)
