@@ -1,12 +1,14 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleportxxxxxxxxxxxx
+local isTeleporting = false
 
--- Lấy Remote để teleport (sử dụng remote của game thay vì TeleportService)
+-- Lấy Remote để teleport
 local Shared = ReplicatedStorage:WaitForChild("Shared", 10)
 local TeleportRemote = Shared and Shared:WaitForChild("Teleport", 10)
 local TeleportToHub = TeleportRemote and TeleportRemote:WaitForChild("TeleportToHub", 10)
+local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menu
+local StartRaid = TeleportRemote and TeleportRemote:WaitForChild("StartRaid", 10)
 
 -- [[ DANH SÁCH ID ]]
 
@@ -60,23 +62,21 @@ local worldRemoteIds = {
     World5 = { Name = 'World 5', Id = 31, PlaceId = 5703355191 },
     World6 = { Name = 'World 6', Id = 36, PlaceId = 6075083204 },
     World7 = { Name = 'World 7', Id = 40, PlaceId = 6847035264 },
-    World8 = { Name = 'World 8', Id = 45, PlaceId = nil }, -- Chưa có PlaceId
+    World8 = { Name = 'World 8', Id = 45, PlaceId = nil },
     World9 = { Name = 'World 9', Id = 49, PlaceId = 10651517727 },
-    World10 = { Name = 'World 10', Id = 56, PlaceId = nil }, -- Chưa có PlaceId
+    World10 = { Name = 'World 10', Id = 56, PlaceId = nil },
 }
 
--- [[ CẬP NHẬT: DANH SÁCH WORLD MỤC TIÊU ĐỂ DỊCH CHUYỂN VÀ START RAID ]]
--- Sử dụng Remote Id thay vì PlaceId
+-- [[ DANH SÁCH WORLD MỤC TIÊU ]]
 local targetWorldRemoteIds = {
-    20, -- World 3 (Remote Id)
-    29, -- World 4 (Remote Id)
-    31, -- World 5 (Remote Id)
-    36, -- World 6 (Remote Id)
+    20, -- World 3
+    29, -- World 4
+    31, -- World 5
+    36, -- World 6
 }
 
 -- [[ CÁC HÀM TIỆN ÍCH ]]
 
--- Hàm để dừng tất cả các hoạt động script
 local function stopAllScripts()
     while isTeleporting do
         warn("Script đang tạm dừng do teleport...")
@@ -89,9 +89,7 @@ local function isGameLoaded()
     return game:IsLoaded()
 end
 
--- Hàm tiện ích để kiểm tra xem PlaceId hiện tại có nằm trong danh sách world mục tiêu không
 local function isInTargetWorld()
-    -- Kiểm tra theo PlaceId
     local targetPlaceIds = {4465987684, 4646472003, 5703355191, 6075083204}
     for _, placeId in ipairs(targetPlaceIds) do
         if game.PlaceId == placeId then
@@ -101,7 +99,6 @@ local function isInTargetWorld()
     return false
 end
 
--- Hàm kiểm tra nhân vật còn sống không
 local function isAlive()
     local character = LocalPlayer.Character
     if not character then return false end
@@ -110,7 +107,6 @@ local function isAlive()
     return humanoid.Health > 0
 end
 
--- Hàm kiểm tra version và kick nếu không đúng (tất cả world trừ main menu)
 local function checkVersion()
     if game.PlaceId == 2727067538 then
         return
@@ -163,28 +159,56 @@ local function checkVersion()
     end
 end
 
+-- Hàm lấy GUID của profile hiện tại
+local function getProfileGUID()
+    local success, guid = pcall(function()
+        local Profile = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Profile"))
+        local profile = Profile:GetProfile(LocalPlayer)
+        if profile and profile.GUID then
+            return profile.GUID.Value
+        end
+        return nil
+    end)
+    return success and guid or nil
+end
+
 -- Hàm để thực hiện Start Raid
 local function startRaid()
     warn("Đang thực hiện Start Raid...")
     local args = { [1] = 34 }
     
-    local teleportModule = ReplicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
-    
-    if teleportModule then
-        local startRaidEvent = teleportModule:WaitForChild("StartRaid", 5)
-        if startRaidEvent then
-            startRaidEvent:FireServer(unpack(args))
-        else
-            warn("Không tìm thấy StartRaidEvent.")
-        end
+    if StartRaid then
+        StartRaid:FireServer(unpack(args))
+        warn("Đã gửi StartRaid request!")
     else
-        warn("Không tìm thấy module Teleport.")
+        warn("Không tìm thấy StartRaid Remote.")
     end
 end
 
+-- Hàm teleport từ Main Menu (sử dụng JoinGame)
+local function teleportFromMainMenu(worldId)
+    -- Ở Main Menu, cần sử dụng JoinGame Remote thay vì TeleportToHub
+    -- JoinGame yêu cầu GUID của profile
+    
+    local guid = getProfileGUID()
+    if not guid then
+        warn("Không thể lấy GUID của profile!")
+        return false
+    end
+    
+    if JoinGame then
+        -- JoinGame(guid, playTutorial)
+        -- arg2 = GUID, arg3 = playTutorial (false = skip tutorial)
+        JoinGame:FireServer(guid, false)
+        warn("Đã gửi JoinGame request với GUID: " .. tostring(guid))
+        return true
+    else
+        warn("Không tìm thấy JoinGame Remote!")
+        return false
+    end
+end
 
-
--- Hàm teleport đến world sử dụng Remote (thay vì TeleportService)
+-- Hàm teleport đến world sử dụng Remote (khi đã ở trong game)
 local function teleportToWorld(remoteId)
     if not TeleportToHub then
         warn("Không tìm thấy TeleportToHub Remote!")
@@ -192,7 +216,6 @@ local function teleportToWorld(remoteId)
     end
     
     -- Chỉ kiểm tra isAlive() nếu KHÔNG phải ở Main Menu
-    -- Vì ở Main Menu, nhân vật chưa được spawn
     if game.PlaceId ~= 2727067538 and not isAlive() then
         warn("Nhân vật đã chết, không thể teleport!")
         return false
@@ -200,10 +223,9 @@ local function teleportToWorld(remoteId)
     
     -- Sử dụng Remote của game để teleport
     TeleportToHub:FireServer(remoteId)
+    warn("Đã gửi TeleportToHub request với Remote Id: " .. tostring(remoteId))
     return true
 end
-
-
 
 -- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
 
@@ -216,12 +238,20 @@ local function teleportAndRaidLogic()
     isTeleporting = true
 
     local success, err = pcall(function()
-        -- Trường hợp 1: Nếu đang ở Main Menu -> Dịch chuyển ngẫu nhiên đến một world trong danh sách
+        -- Trường hợp 1: Nếu đang ở Main Menu -> Sử dụng JoinGame để vào game
         if game.PlaceId == 2727067538 then
-            -- Chọn ngẫu nhiên một Remote Id từ danh sách
+            warn("Đang ở Main Menu, sử dụng JoinGame để vào game...")
+            teleportFromMainMenu()
+        
+        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
+        elseif isInTargetWorld() then
+            warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
+            startRaid()
+        
+        -- Trường hợp 3: Nếu đang ở world khác -> Teleport đến world mục tiêu
+        else
             local randomRemoteId = targetWorldRemoteIds[math.random(1, #targetWorldRemoteIds)]
             
-            -- Tìm tên world tương ứng
             local worldName = "Unknown"
             for key, data in pairs(worldRemoteIds) do
                 if data.Id == randomRemoteId then
@@ -230,13 +260,8 @@ local function teleportAndRaidLogic()
                 end
             end
             
-            warn("Teleporting from Main Menu to " .. worldName .. " (Remote Id: " .. randomRemoteId .. ")")
+            warn("Teleporting to " .. worldName .. " (Remote Id: " .. randomRemoteId .. ")")
             teleportToWorld(randomRemoteId)
-        
-        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
-        elseif isInTargetWorld() then
-            warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
-            startRaid()
         end
     end)
 
@@ -283,7 +308,7 @@ function towerCheck()
     return false
 end
 
--- [[ VÒNG LẶP CHÍNH VÀ COROUTINE ]]
+-- [[ VÒNG LẶP CHÍNH ]]
 
 local function checkAndExecuteLogic()
     stopAllScripts()
@@ -319,7 +344,6 @@ local function mainCoroutine()
     end
 end
 
--- Khởi chạy coroutine chính
 coroutine.wrap(mainCoroutine)()
 
 -- Cơ chế dự phòng sau 7 phút
