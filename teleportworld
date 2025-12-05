@@ -7,7 +7,7 @@ local isTeleporting = false
 local Shared = ReplicatedStorage:WaitForChild("Shared", 10)
 local TeleportRemote = Shared and Shared:WaitForChild("Teleport", 10)
 local TeleportToHub = TeleportRemote and TeleportRemote:WaitForChild("TeleportToHub", 10)
-local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menu
+local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menuxxxxxxxxxxxxx
 local StartRaid = TeleportRemote and TeleportRemote:WaitForChild("StartRaid", 10)
 
 -- [[ DANH SÁCH ID ]]
@@ -160,17 +160,39 @@ local function checkVersion()
 end
 
 -- Hàm lấy GUID của profile hiện tại
+
+
+-- Hàm lấy GUID của profile hiện tại
 local function getProfileGUID()
-    local success, guid = pcall(function()
-        local Profile = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Profile"))
-        local profile = Profile:GetProfile(LocalPlayer)
-        if profile and profile.GUID then
-            return profile.GUID.Value
-        end
-        return nil
-    end)
-    return success and guid or nil
+    -- Ở Main Menu: lấy từ ProfileCollection
+    if game.PlaceId == 2727067538 then
+        local success, guid = pcall(function()
+            local profilesParent = LocalPlayer:WaitForChild("PlayerGui", 10)
+                :WaitForChild("ProfileCollection", 10)
+                :WaitForChild("Profiles", 10)
+            
+            -- Lấy profile đầu tiên có GUID và Gold > 0
+            for _, profile in ipairs(profilesParent:GetChildren()) do
+                local guidObj = profile:FindFirstChild("GUID")
+                if guidObj and guidObj:IsA("StringValue") and guidObj.Value ~= "" then
+                    return guidObj.Value
+                end
+            end
+            return nil
+        end)
+        return success and guid or nil
+    else
+        -- Ở trong Game: lấy từ Profile
+        local success, guid = pcall(function()
+            return LocalPlayer:WaitForChild("PlayerGui", 10)
+                :WaitForChild("Profile", 10)
+                :WaitForChild("GUID", 10).Value
+        end)
+        return success and guid or nil
+    end
 end
+
+
 
 -- Hàm để thực hiện Start Raid
 local function startRaid()
