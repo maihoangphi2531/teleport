@@ -1,7 +1,12 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local isTeleporting = false -- Biến khóa để đảm bảo các hoạt động khác dừng lại khi teleport
+
+-- Lấy Remote để teleport (sử dụng remote của game thay vì TeleportService)
+local Shared = ReplicatedStorage:WaitForChild("Shared", 10)
+local TeleportRemote = Shared and Shared:WaitForChild("Teleport", 10)
+local TeleportToHub = TeleportRemote and TeleportRemote:WaitForChild("TeleportToHub", 10)
 
 -- [[ DANH SÁCH ID ]]
 
@@ -43,16 +48,30 @@ local lobbyId = {
     [5703355191] = 'World 5',
     [6075083204] = 'World 6',
     [6847035264] = 'World 7',
-    -- World 8 không có trong danh sách gốc, bạn có thể thêm ID vào đây nếu cần
-    [10651517727] = 'world 9'
+    [10651517727] = 'World 9'
+}
+
+-- [[ DANH SÁCH WORLD VỚI ID REMOTE (dùng cho TeleportToHub) ]]
+local worldRemoteIds = {
+    World1 = { Name = 'World 1', Id = 13, PlaceId = 4310463616 },
+    World2 = { Name = 'World 2', Id = 19, PlaceId = 4310463940 },
+    World3 = { Name = 'World 3', Id = 20, PlaceId = 4465987684 },
+    World4 = { Name = 'World 4', Id = 29, PlaceId = 4646472003 },
+    World5 = { Name = 'World 5', Id = 31, PlaceId = 5703355191 },
+    World6 = { Name = 'World 6', Id = 36, PlaceId = 6075083204 },
+    World7 = { Name = 'World 7', Id = 40, PlaceId = 6847035264 },
+    World8 = { Name = 'World 8', Id = 45, PlaceId = nil }, -- Chưa có PlaceId
+    World9 = { Name = 'World 9', Id = 49, PlaceId = 10651517727 },
+    World10 = { Name = 'World 10', Id = 56, PlaceId = nil }, -- Chưa có PlaceId
 }
 
 -- [[ CẬP NHẬT: DANH SÁCH WORLD MỤC TIÊU ĐỂ DỊCH CHUYỂN VÀ START RAID ]]
-local targetWorlds = {
-    4465987684, -- World 3
-    4646472003, -- World 4
-    5703355191, -- World 5
-    6075083204, -- World 6
+-- Sử dụng Remote Id thay vì PlaceId
+local targetWorldRemoteIds = {
+    20, -- World 3 (Remote Id)
+    29, -- World 4 (Remote Id)
+    31, -- World 5 (Remote Id)
+    36, -- World 6 (Remote Id)
 }
 
 -- [[ CÁC HÀM TIỆN ÍCH ]]
@@ -61,35 +80,44 @@ local targetWorlds = {
 local function stopAllScripts()
     while isTeleporting do
         warn("Script đang tạm dừng do teleport...")
-        wait(1) -- Đợi một khoảng thời gian ngắn để ngăn các hoạt động khác tiếp tục
+        wait(1)
     end
 end
 
 local function isGameLoaded()
-    stopAllScripts() -- Dừng trước khi kiểm tra game
+    stopAllScripts()
     return game:IsLoaded()
 end
 
 -- Hàm tiện ích để kiểm tra xem PlaceId hiện tại có nằm trong danh sách world mục tiêu không
 local function isInTargetWorld()
-    for _, worldId in ipairs(targetWorlds) do
-        if game.PlaceId == worldId then
+    -- Kiểm tra theo PlaceId
+    local targetPlaceIds = {4465987684, 4646472003, 5703355191, 6075083204}
+    for _, placeId in ipairs(targetPlaceIds) do
+        if game.PlaceId == placeId then
             return true
         end
     end
     return false
 end
 
+-- Hàm kiểm tra nhân vật còn sống không
+local function isAlive()
+    local character = LocalPlayer.Character
+    if not character then return false end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    return humanoid.Health > 0
+end
+
 -- Hàm kiểm tra version và kick nếu không đúng (tất cả world trừ main menu)
 local function checkVersion()
-    -- Không kiểm tra version nếu đang ở Main Menu
     if game.PlaceId == 2727067538 then
         return
     end
     
     local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
     
-    -- Thử lại liên tục cho đến khi tìm thấy Settings GUI
     local SettingsGui
     repeat
         SettingsGui = PlayerGui:FindFirstChild("Settings")
@@ -99,7 +127,6 @@ local function checkVersion()
         end
     until SettingsGui
     
-    -- Thử lại liên tục cho đến khi tìm thấy Settings Frame
     local SettingsFrame
     repeat
         SettingsFrame = SettingsGui:FindFirstChild("Settings")
@@ -109,7 +136,6 @@ local function checkVersion()
         end
     until SettingsFrame
     
-    -- Thử lại liên tục cho đến khi tìm thấy Version Label
     local VersionLabel
     repeat
         VersionLabel = SettingsFrame:FindFirstChild("Version")
@@ -119,18 +145,15 @@ local function checkVersion()
         end
     until VersionLabel
     
-    -- Đợi cho đến khi version được load thực sự (không phải "0.0.0" hoặc rỗng)
     local currentVersion
     repeat
         currentVersion = VersionLabel.Text
-        -- Kiểm tra nếu version chưa load hoặc vẫn là giá trị mặc định
         if currentVersion == "" or currentVersion == "Version 0.0.0" or not currentVersion:find("Version") then
             print("Đang đợi version load... Hiện tại: '" .. tostring(currentVersion) .. "'")
             task.wait(0.5)
         end
     until currentVersion ~= "" and currentVersion ~= "Version 0.0.0" and currentVersion:find("Version")
     
-    -- Kiểm tra version
     local requiredVersion = "Version 2.8.2"
     
     if currentVersion ~= requiredVersion then
@@ -143,10 +166,9 @@ end
 -- Hàm để thực hiện Start Raid
 local function startRaid()
     warn("Đang thực hiện Start Raid...")
-    local args = { [1] = 34 } -- ID của raid, giữ nguyên là 34
+    local args = { [1] = 34 }
     
-    local replicatedStorage = game:GetService("ReplicatedStorage")
-    local teleportModule = replicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
+    local teleportModule = ReplicatedStorage:WaitForChild("Shared", 5):WaitForChild("Teleport", 5)
     
     if teleportModule then
         local startRaidEvent = teleportModule:WaitForChild("StartRaid", 5)
@@ -160,23 +182,50 @@ local function startRaid()
     end
 end
 
+-- Hàm teleport đến world sử dụng Remote (thay vì TeleportService)
+local function teleportToWorld(remoteId)
+    if not TeleportToHub then
+        warn("Không tìm thấy TeleportToHub Remote!")
+        return false
+    end
+    
+    if not isAlive() then
+        warn("Nhân vật đã chết, không thể teleport!")
+        return false
+    end
+    
+    -- Sử dụng Remote của game để teleport
+    TeleportToHub:FireServer(remoteId)
+    return true
+end
 
 -- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
 
 local function teleportAndRaidLogic()
     if isTeleporting then
         warn("Script đang dừng do teleport đang diễn ra.")
-        return -- Dừng lại nếu đã có teleport đang thực hiện
+        return
     end
 
-    isTeleporting = true -- Đặt khóa để dừng các hoạt động khác
+    isTeleporting = true
 
     local success, err = pcall(function()
         -- Trường hợp 1: Nếu đang ở Main Menu -> Dịch chuyển ngẫu nhiên đến một world trong danh sách
         if game.PlaceId == 2727067538 then
-            local randomWorldId = targetWorlds[math.random(1, #targetWorlds)]
-            warn("Teleporting from Main Menu to random world: " .. (lobbyId[randomWorldId] or randomWorldId))
-            TeleportService:Teleport(randomWorldId)
+            -- Chọn ngẫu nhiên một Remote Id từ danh sách
+            local randomRemoteId = targetWorldRemoteIds[math.random(1, #targetWorldRemoteIds)]
+            
+            -- Tìm tên world tương ứng
+            local worldName = "Unknown"
+            for key, data in pairs(worldRemoteIds) do
+                if data.Id == randomRemoteId then
+                    worldName = data.Name
+                    break
+                end
+            end
+            
+            warn("Teleporting from Main Menu to " .. worldName .. " (Remote Id: " .. randomRemoteId .. ")")
+            teleportToWorld(randomRemoteId)
         
         -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
         elseif isInTargetWorld() then
@@ -189,7 +238,6 @@ local function teleportAndRaidLogic()
         warn("Error during teleport/raid logic: " .. err)
     end
 
-    -- Sau khi kết thúc, thả khóa ngay lập tức
     wait(2)
     isTeleporting = false
 end
@@ -235,13 +283,12 @@ local function checkAndExecuteLogic()
     stopAllScripts()
     warn('Checking location...')
 
-    -- Kiểm tra version ngay khi vào bất kỳ world nào (trừ Main Menu)
     if game.PlaceId ~= 2727067538 then
         checkVersion()
     end
 
     if isTeleporting then
-        return -- Nếu đang trong quá trình teleport, không làm gì cả
+        return
     end
 
     if isGameLoaded() then
@@ -262,23 +309,19 @@ local function mainCoroutine()
         if not isTeleporting then
             checkAndExecuteLogic()
         end
-        wait(10) -- Tần suất kiểm tra
+        wait(10)
     end
 end
 
 -- Khởi chạy coroutine chính
 coroutine.wrap(mainCoroutine)()
 
--- Coroutine này có vẻ là một cơ chế dự phòng, giữ lại theo yêu cầu
+-- Cơ chế dự phòng sau 7 phút
 local function runAfter7Minutes()
     stopAllScripts()
-    
-    -- Chờ 7 phút (420 giây)
     wait(420)
-
     warn("7 minutes passed. Firing StartRaid as a fallback.")
     startRaid()
 end
 
--- Bắt đầu coroutine để không ảnh hưởng đến các hàm khác
 task.spawn(runAfter7Minutes)
