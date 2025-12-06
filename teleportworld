@@ -162,6 +162,8 @@ end
 
 
 
+
+
 -- Hàm lấy GUID của profile hiện tại
 local function getProfileGUID()
     -- Ở Main Menu: lấy từ ProfileCollection, chọn profile có nhiều DiscoveredDungeons nhất
@@ -171,14 +173,34 @@ local function getProfileGUID()
                 :WaitForChild("ProfileCollection", 10)
                 :WaitForChild("Profiles", 10)
             
+            warn("⏳ Đang đợi Profiles load hoàn toàn...")
+            
+            -- Cách chắc chắn nhất: Đợi cho đến khi không còn thêm descendant mới trong 2 giây
+            local lastDescendantTime = tick()
+            local connection
+            
+            connection = profilesParent.DescendantAdded:Connect(function()
+                lastDescendantTime = tick()
+            end)
+            
+            -- Đợi tối thiểu 3 giây, và đợi thêm cho đến khi không có descendant mới trong 2 giây
+            task.wait(3)
+            while (tick() - lastDescendantTime) < 2 do
+                task.wait(0.5)
+                warn("⏳ Vẫn đang load... (last activity: " .. string.format("%.1f", tick() - lastDescendantTime) .. "s ago)")
+            end
+            
+            connection:Disconnect()
+            warn("✅ Profiles đã load xong!")
+            
+            -- Bây giờ mới đếm và chọn profile tốt nhất
             local bestGUID = nil
             local maxDungeons = -1
+            local bestProfileName = ""
             
-            -- Duyệt qua tất cả profile để tìm profile có nhiều DiscoveredDungeons nhất
             for _, profile in ipairs(profilesParent:GetChildren()) do
                 local guidObj = profile:FindFirstChild("GUID")
                 if guidObj and guidObj:IsA("StringValue") and guidObj.Value ~= "" then
-                    -- Đếm số lượng folder trong DiscoveredDungeons
                     local discoveredDungeons = profile:FindFirstChild("DiscoveredDungeons")
                     local dungeonCount = 0
                     
@@ -186,18 +208,20 @@ local function getProfileGUID()
                         dungeonCount = #discoveredDungeons:GetChildren()
                     end
                     
-                    warn("Profile: " .. profile.Name .. " | GUID: " .. guidObj.Value .. " | DiscoveredDungeons: " .. dungeonCount)
+                    warn("📋 Profile: " .. profile.Name .. " | GUID: " .. string.sub(guidObj.Value, 1, 8) .. "... | Dungeons: " .. dungeonCount)
                     
-                    -- Chọn profile có nhiều dungeon nhất
                     if dungeonCount > maxDungeons then
                         maxDungeons = dungeonCount
                         bestGUID = guidObj.Value
+                        bestProfileName = profile.Name
                     end
                 end
             end
             
             if bestGUID then
-                warn("Đã chọn Profile với GUID: " .. bestGUID .. " (DiscoveredDungeons: " .. maxDungeons .. ")")
+                warn("✅ Đã chọn: " .. bestProfileName .. " (Dungeons: " .. maxDungeons .. ")")
+            else
+                warn("❌ Không tìm thấy profile phù hợp!")
             end
             
             return bestGUID
@@ -213,6 +237,7 @@ local function getProfileGUID()
         return success and guid or nil
     end
 end
+
 
 
 
