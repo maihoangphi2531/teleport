@@ -7,7 +7,7 @@ local isTeleporting = false
 local Shared = ReplicatedStorage:WaitForChild("Shared", 10)
 local TeleportRemote = Shared and Shared:WaitForChild("Teleport", 10)
 local TeleportToHub = TeleportRemote and TeleportRemote:WaitForChild("TeleportToHub", 10)
-local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menuxxxxxxxxxxxxx
+local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menu
 local StartRaid = TeleportRemote and TeleportRemote:WaitForChild("StartRaid", 10)
 
 -- [[ DANH SÁCH ID ]]
@@ -159,26 +159,48 @@ local function checkVersion()
     end
 end
 
--- Hàm lấy GUID của profile hiện tại
+
 
 
 -- Hàm lấy GUID của profile hiện tại
 local function getProfileGUID()
-    -- Ở Main Menu: lấy từ ProfileCollection
+    -- Ở Main Menu: lấy từ ProfileCollection, chọn profile có nhiều DiscoveredDungeons nhất
     if game.PlaceId == 2727067538 then
         local success, guid = pcall(function()
             local profilesParent = LocalPlayer:WaitForChild("PlayerGui", 10)
                 :WaitForChild("ProfileCollection", 10)
                 :WaitForChild("Profiles", 10)
             
-            -- Lấy profile đầu tiên có GUID và Gold > 0
+            local bestGUID = nil
+            local maxDungeons = -1
+            
+            -- Duyệt qua tất cả profile để tìm profile có nhiều DiscoveredDungeons nhất
             for _, profile in ipairs(profilesParent:GetChildren()) do
                 local guidObj = profile:FindFirstChild("GUID")
                 if guidObj and guidObj:IsA("StringValue") and guidObj.Value ~= "" then
-                    return guidObj.Value
+                    -- Đếm số lượng folder trong DiscoveredDungeons
+                    local discoveredDungeons = profile:FindFirstChild("DiscoveredDungeons")
+                    local dungeonCount = 0
+                    
+                    if discoveredDungeons then
+                        dungeonCount = #discoveredDungeons:GetChildren()
+                    end
+                    
+                    warn("Profile: " .. profile.Name .. " | GUID: " .. guidObj.Value .. " | DiscoveredDungeons: " .. dungeonCount)
+                    
+                    -- Chọn profile có nhiều dungeon nhất
+                    if dungeonCount > maxDungeons then
+                        maxDungeons = dungeonCount
+                        bestGUID = guidObj.Value
+                    end
                 end
             end
-            return nil
+            
+            if bestGUID then
+                warn("Đã chọn Profile với GUID: " .. bestGUID .. " (DiscoveredDungeons: " .. maxDungeons .. ")")
+            end
+            
+            return bestGUID
         end)
         return success and guid or nil
     else
@@ -191,6 +213,7 @@ local function getProfileGUID()
         return success and guid or nil
     end
 end
+
 
 
 
