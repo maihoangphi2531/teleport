@@ -420,7 +420,7 @@ local function mainCoroutine()
         if not isTeleporting then
             checkAndExecuteLogic()
         end
-        wait(10)
+        wait(1)
     end
 end
 
