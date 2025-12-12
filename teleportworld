@@ -7,7 +7,7 @@ local isTeleporting = false
 local Shared = ReplicatedStorage:WaitForChild("Shared", 10)
 local TeleportRemote = Shared and Shared:WaitForChild("Teleport", 10)
 local TeleportToHub = TeleportRemote and TeleportRemote:WaitForChild("TeleportToHub", 10)
-local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menuxxxxxxxxxxxxx
+local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menux
 local StartRaid = TeleportRemote and TeleportRemote:WaitForChild("StartRaid", 10)
 
 -- [[ DANH SÁCH ID ]]
@@ -90,7 +90,7 @@ local function isGameLoaded()
 end
 
 local function isInTargetWorld()
-    local targetPlaceIds = {4465987684, 4646472003, 5703355191, 6075083204}
+    local targetPlaceIds = {4310463616, 4465987684, 4646472003, 5703355191, 6075083204}
     for _, placeId in ipairs(targetPlaceIds) do
         if game.PlaceId == placeId then
             return true
