@@ -7,7 +7,7 @@ local isTeleporting = false
 local Shared = ReplicatedStorage:WaitForChild("Shared", 10)
 local TeleportRemote = Shared and Shared:WaitForChild("Teleport", 10)
 local TeleportToHub = TeleportRemote and TeleportRemote:WaitForChild("TeleportToHub", 10)
-local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menux
+local JoinGame = TeleportRemote and TeleportRemote:WaitForChild("JoinGame", 10) -- Remote dùng cho Main Menuxxxxxxxxxxxxx
 local StartRaid = TeleportRemote and TeleportRemote:WaitForChild("StartRaid", 10)
 
 -- [[ DANH SÁCH ID ]]
@@ -303,6 +303,8 @@ end
 
 -- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
 
+-- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
+
 local function teleportAndRaidLogic()
     if isTeleporting then
         warn("Script đang dừng do teleport đang diễn ra.")
@@ -317,16 +319,12 @@ local function teleportAndRaidLogic()
             warn("Đang ở Main Menu, sử dụng JoinGame để vào game...")
             teleportFromMainMenu()
         
-        -- Trường hợp 2: Nếu đang ở World 1 hoặc World 2 -> Bỏ qua (để script khác xử lý)
-        elseif game.PlaceId == 4310463616 or game.PlaceId == 4310463940 then
-            warn("⏸️ Đang ở World 1/2, bỏ qua (script khác đang xử lý)...")
-        
-        -- Trường hợp 3: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
+        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
         elseif isInTargetWorld() then
             warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
             startRaid()
         
-        -- Trường hợp 4: Nếu đang ở world khác -> Teleport đến world mục tiêu
+        -- Trường hợp 3: Nếu đang ở world khác (bao gồm World 1, 2) -> Teleport đến world mục tiêu
         else
             local randomRemoteId = targetWorldRemoteIds[math.random(1, #targetWorldRemoteIds)]
             
