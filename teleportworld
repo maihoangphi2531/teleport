@@ -305,6 +305,8 @@ end
 
 -- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
 
+-- [[ HÀM CHÍNH ĐỂ DỊCH CHUYỂN VÀ RAID ]]
+
 local function teleportAndRaidLogic()
     if isTeleporting then
         warn("Script đang dừng do teleport đang diễn ra.")
@@ -319,12 +321,16 @@ local function teleportAndRaidLogic()
             warn("Đang ở Main Menu, sử dụng JoinGame để vào game...")
             teleportFromMainMenu()
         
-        -- Trường hợp 2: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
+        -- Trường hợp 2: Nếu đang ở World 2 -> Bỏ qua hoàn toàn
+        elseif game.PlaceId == 4310463940 then
+            warn("⏸️ Đang ở World 2, bỏ qua (không làm gì cả)...")
+        
+        -- Trường hợp 3: Nếu đang ở một trong các world mục tiêu -> Bắt đầu raid
         elseif isInTargetWorld() then
             warn("Đã ở trong world mục tiêu. Bắt đầu Raid.")
             startRaid()
         
-        -- Trường hợp 3: Nếu đang ở world khác (bao gồm World 1, 2) -> Teleport đến world mục tiêu
+        -- Trường hợp 4: Nếu đang ở world khác -> Teleport đến world mục tiêu
         else
             local randomRemoteId = targetWorldRemoteIds[math.random(1, #targetWorldRemoteIds)]
             
