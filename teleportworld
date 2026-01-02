@@ -107,57 +107,7 @@ local function isAlive()
     return humanoid.Health > 0
 end
 
-local function checkVersion()
-    if game.PlaceId == 2727067538 then
-        return
-    end
-    
-    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-    
-    local SettingsGui
-    repeat
-        SettingsGui = PlayerGui:FindFirstChild("Settings")
-        if not SettingsGui then
-            print("Đang tìm Settings GUI...")
-            task.wait(0.5)
-        end
-    until SettingsGui
-    
-    local SettingsFrame
-    repeat
-        SettingsFrame = SettingsGui:FindFirstChild("Settings")
-        if not SettingsFrame then
-            print("Đang tìm Settings Frame...")
-            task.wait(0.5)
-        end
-    until SettingsFrame
-    
-    local VersionLabel
-    repeat
-        VersionLabel = SettingsFrame:FindFirstChild("Version")
-        if not VersionLabel then
-            print("Đang tìm Version Label...")
-            task.wait(0.5)
-        end
-    until VersionLabel
-    
-    local currentVersion
-    repeat
-        currentVersion = VersionLabel.Text
-        if currentVersion == "" or currentVersion == "Version 0.0.0" or not currentVersion:find("Version") then
-            print("Đang đợi version load... Hiện tại: '" .. tostring(currentVersion) .. "'")
-            task.wait(0.5)
-        end
-    until currentVersion ~= "" and currentVersion ~= "Version 0.0.0" and currentVersion:find("Version")
-    
-    local requiredVersion = "Version 2.8.6"
-    
-    if currentVersion ~= requiredVersion then
-        LocalPlayer:Kick("Version không hợp lệ! Yêu cầu: " .. requiredVersion .. " | Version hiện tại: " .. currentVersion)
-    else
-        print("Version hợp lệ: " .. currentVersion)
-    end
-end
+
 
 
 
@@ -398,9 +348,6 @@ local function checkAndExecuteLogic()
     stopAllScripts()
     warn('Checking location...')
 
-    if game.PlaceId ~= 2727067538 then
-        checkVersion()
-    end
 
     if isTeleporting then
         return
